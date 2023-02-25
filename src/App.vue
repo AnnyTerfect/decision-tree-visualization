@@ -185,13 +185,13 @@
               <v-row class="text-lg text-black">
                 <v-col cols="5">Num Leaves</v-col>
                 <v-col cols="7">
-                  {{ tree.getNumLeaves() }}
+                  {{ tree === null ? 0 : tree.getNumLeaves() }}
                 </v-col>
               </v-row>
               <v-row class="text-lg text-black">
                 <v-col cols="5">Depth</v-col>
                 <v-col cols="7">
-                  {{ tree.getDepth() }}
+                  {{ tree === null ? 0 : tree.getDepth() }}
                 </v-col>
               </v-row>
             </v-container>
@@ -208,6 +208,9 @@
           :lines.sync="lines"
           :rects.sync="rects"
           :tree.sync="tree"
+          :featureRandom="featureRandom"
+          :labelRandom="labelRandom"
+          :noise="noise"
           @updateTree="updateTree"
         />
       </v-main>
@@ -245,7 +248,11 @@ export default {
   watch: {
     points () {
       this.updateTree()
-    }
+    },
+    labelRandom () {
+      this.generate()
+      this.updateTree()
+    },
   },
 
   methods: {

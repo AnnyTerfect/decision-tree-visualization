@@ -11,29 +11,34 @@
         ref="svg"
       >
         <rect
-          v-for="(rect, index) in rects"
+          v-for="rect in rects"
           :x="rect.x"
           :y="rect.y"
           :width="rect.width"
           :height="rect.height"
           class="opacity-40"
           :class="rect.label === 1 ? 'fill-red-200' : 'fill-blue-200'"
-          :key="index"
+          :key="String([rect.x, rect.y])"
         />
         <circle
-          v-for="(point, index) in points"
+          v-for="point in points"
           class="hover:stroke-black hover:stroke-3"
           :class="point.label === 1 ? 'fill-red-300': 'fill-blue-300'"
           :cx="point.cx"
           :cy="point.cy"
           :r="r"
-          :key="index"
+          :key="String([point.cx, point.cy])"
         />
         <line
-          v-for="(line, index) in lines"
+          v-for="line in lines"
           class="stroke-black stroke-1 hover:stroke-3"
           :x1="line.x1" :y1="line.y1" :x2="line.x2" :y2="line.y2"
-          :key="index"
+          :key="String([line.x1, line.y1, line.x2, line.y2])"
+        />
+        <path
+          :d="curve"
+          class="stroke-black stroke-3 hover:stroke-5 opacity-50"
+          fill="none"
         />
       </svg>
     </v-card>
@@ -43,12 +48,74 @@
 <script>
 export default {
   name: 'App',
-  props: ['label', 'width', 'height', 'points', 'r', 'lines', 'rects', 'tree', 'num', 'noise', 'featureRandom', 'labelRandom'],
+  props: {
+    label: Number,
+    width: Number,
+    height: Number,
+    points: {
+      type: Array,
+      default: () => [],
+    },
+    r: Number,
+    lines: {
+      type: Array,
+      default: () => [],
+    },
+    rects: {
+      type: Array,
+      default: () => [],
+    },
+    tree: {
+      type: Object,
+      default: () => null,
+    },
+    num: Number,
+    noise: Number,
+    featureRandom: String,
+    labelRandom: String,
+    curveN: {
+      type: Number,
+      default: () => 100,
+    },
+  },
   computed: {
     movingPoints () {
-      console.log(this.points)
       return this.points.filter((point) => point.moving)
-    }
+    },
+    curve () {
+      // Get curve function
+      let curveFun = null
+      switch(this.labelRandom) {
+        case 'linear':
+          curveFun =  (x) => x
+          break
+        case 'quadratic':
+          curveFun =  (x) => Math.pow(x, 2)
+          break
+        case 'cubic':
+          curveFun =  (x) => Math.pow(x, 3)
+          break
+      }
+
+      if (curveFun === null) return null;
+
+      // Get curve points
+      let curvePoints = []
+      for (let i = 0; i <= this.curveN; i++) {
+        let x = i / this.curveN * this.width
+        let y = (1 - curveFun(x / this.width)) * this.height
+        curvePoints.push({x, y})
+      }
+
+      console.log(this.curveN)
+
+      if (curvePoints.length === 0) return null          
+      let d = `M ${curvePoints[0].x} ${curvePoints[0].y}`
+      for (let i = 1; i < curvePoints.length; i++) {
+        d += ` L ${curvePoints[i].x} ${curvePoints[i].y}`
+      }
+      return d
+    },
   },
   methods: {
     distance (x1, y1, x2, y2) {
@@ -99,10 +166,6 @@ export default {
       }
     },
   },
-  mounted () {
-    this.generate()
-    this.$emit('updateTree')
-  }
 }
 </script>
 
