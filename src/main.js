@@ -1,11 +1,20 @@
-import Vue from 'vue'
+import 'virtual:windi.css'
+import { createApp } from 'vue'
 import App from './App.vue'
-import vuetify from './plugins/vuetify'
-import 'windi.css'
 
-Vue.config.productionTip = false
+// Vuetify
+import 'vuetify/styles'
+import '@mdi/font/css/materialdesignicons.css'
+import { createVuetify } from 'vuetify'
+import * as components from 'vuetify/components'
+import * as directives from 'vuetify/directives'
 
-new Vue({
-  vuetify,
-  render: h => h(App)
-}).$mount('#app')
+const vuetify = createVuetify({
+  components,
+  directives,
+  icons: {
+    iconfont: 'mdi', // default - only for display purposes
+  },
+})
+
+createApp(App).use(vuetify).mount('#app')

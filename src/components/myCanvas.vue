@@ -1,21 +1,151 @@
+<script setup>
+import { ref, defineProps, computed, watch, defineEmits } from 'vue'
+import { traverse } from '../utils/cart.js'
+
+const emit = defineEmits()
+
+const svg = ref(null)
+const lines = ref([]), rects = ref([])
+
+const props = defineProps({
+  width: {
+    type: Number,
+    required: true,
+  },
+  height: {
+    type: Number,
+    required: true,
+  },
+  points: {
+    type: Array,
+    required: true,
+  },
+  r: {
+    type: Number,
+    required: true,
+  },
+  curveN: {
+    type: Number,
+    default: 100,
+  },
+  tree: {
+    type: Object,
+    required: true,
+  },
+  newLabel: {
+    type: Number,
+    required: true
+  }
+})
+
+const movingPoints = computed(() => {
+  return props.points.filter((point) => point.moving)
+})
+
+const curve = computed(() => {
+  // Get curve function
+  let curveFun = null
+  switch(props.labelRandom) {
+    case 'linear':
+      curveFun =  (x) => x
+      break
+    case 'quadratic':
+      curveFun =  (x) => Math.pow(x, 2) + 1 / 4
+      break
+    case 'cubic':
+      curveFun =  (x) => Math.pow(x, 3)
+      break
+  }
+  
+  if (curveFun === null) return null;
+
+  // Get curve points
+  let curvePoints = []
+  for (let i = 0; i <= props.curveN; i++) {
+    let x = i / props.curveN * props.width
+    let y = (1 - curveFun(x / props.width)) * props.height
+    curvePoints.push({x, y})
+  }
+
+  if (curvePoints.length === 0) return null
+
+  let d = `M ${curvePoints[0].x} ${curvePoints[0].y}`
+  for (let i = 1; i < curvePoints.length; i++) {
+    d += ` L ${curvePoints[i].x} ${curvePoints[i].y}`
+  }
+  return d
+})
+
+watch(() => props.tree, () => {
+  let _lines = [], _rects = []
+  traverse(props.tree.tree, 0, 0, props.width, props.height, _lines, _rects)
+  lines.value = _lines
+  rects.value = _rects
+})
+
+function distance (x1, y1, x2, y2) {
+  return Math.sqrt(Math.pow((x1 - x2) * svg.value.clientWidth, 2) + Math.pow((y1 - y2) * svg.value.clientHeight, 2))
+}
+
+function handleMouseUp (event) {
+  if (movingPoints.value.length === 0) {
+    let point = {
+      cx: event.offsetX / svg.value.clientWidth,
+      cy: event.offsetY / svg.value.clientHeight,
+      label: props.newLabel,
+      moving: false,
+    }
+    emit('addPoint', point)
+  }
+  props.points.forEach((point) => point.moving = false)
+}
+
+function handleMouseDown (event) {
+  let neighbours = props.points.filter((point) => {
+    let x1 = point.cx
+    let y1 = point.cy
+    let x2 = event.offsetX / svg.value.clientWidth
+    let y2 = event.offsetY / svg.value.clientHeight
+    return distance(x1, y1, x2, y2) <= props.r
+  })
+  if (neighbours.length > 0) {
+    neighbours[0].moving = true
+  }
+}
+
+function handleMouseMove (event) {
+  if (event.buttons === 1) {
+    if (movingPoints.value.length > 0) {
+      props.points.forEach((point, index) => {
+        if (point.moving) {
+          emit('movePoint', {
+            index,
+            x: event.offsetX / svg.value.clientWidth,
+            y: event.offsetY / svg.value.clientHeight,
+          })
+        }
+      })
+    }
+  }
+}
+</script>
+
 <template>
-  <v-container class="w-1/1 max-w-300">
-    <v-card>
+  <v-container class="h-1/1">
+    <v-card class="h-1/1">
       <svg
-        id="app"
-        class="w-1/1"
+        class="w-1/1 h-1/1"
         @mouseup="handleMouseUp"
         @mousemove="handleMouseMove"
         @mousedown="handleMouseDown"
-        :viewBox="`0 0 ${width} ${height}`"
         ref="svg"
       >
         <rect
           v-for="rect in rects"
-          :x="rect.x"
-          :y="rect.y"
-          :width="rect.width"
-          :height="rect.height"
+          :x="rect.x * width"
+          :y="rect.y * height"
+          :width="rect.width * width"
+          :height="rect.height * height"
           class="opacity-40"
           :class="rect.label === 1 ? 'fill-red-200' : 'fill-blue-200'"
           :key="String([rect.x, rect.y])"
@@ -24,16 +154,16 @@
           v-for="point in points"
           class="hover:stroke-black hover:stroke-3"
           :class="point.label === 1 ? 'fill-red-300': 'fill-blue-300'"
-          :cx="point.cx"
-          :cy="point.cy"
+          :cx="point.cx * width"
+          :cy="point.cy * height"
           :r="r"
           :key="String([point.cx, point.cy])"
         />
         <line
           v-for="line in lines"
           class="stroke-black stroke-1 hover:stroke-3"
-          :x1="line.x1" :y1="line.y1" :x2="line.x2" :y2="line.y2"
-          :key="String([line.x1, line.y1, line.x2, line.y2])"
+          :x1="line.x1 * width" :y1="line.y1 * height" :x2="line.x2 * width" :y2="line.y2 * height"
+          :key="String([line.x1 * width, line.y1 * height, line.x2 * width, line.y2 * height])"
         />
         <path
           :d="curve"
@@ -44,133 +174,3 @@
     </v-card>
   </v-container>
 </template>
-
-<script>
-export default {
-  name: 'App',
-  props: {
-    label: Number,
-    width: Number,
-    height: Number,
-    points: {
-      type: Array,
-      default: () => [],
-    },
-    r: Number,
-    lines: {
-      type: Array,
-      default: () => [],
-    },
-    rects: {
-      type: Array,
-      default: () => [],
-    },
-    tree: {
-      type: Object,
-      default: () => null,
-    },
-    num: Number,
-    noise: Number,
-    featureRandom: String,
-    labelRandom: String,
-    curveN: {
-      type: Number,
-      default: () => 100,
-    },
-  },
-  computed: {
-    movingPoints () {
-      return this.points.filter((point) => point.moving)
-    },
-    curve () {
-      // Get curve function
-      let curveFun = null
-      switch(this.labelRandom) {
-        case 'linear':
-          curveFun =  (x) => x
-          break
-        case 'quadratic':
-          curveFun =  (x) => Math.pow(x, 2)
-          break
-        case 'cubic':
-          curveFun =  (x) => Math.pow(x, 3)
-          break
-      }
-
-      if (curveFun === null) return null;
-
-      // Get curve points
-      let curvePoints = []
-      for (let i = 0; i <= this.curveN; i++) {
-        let x = i / this.curveN * this.width
-        let y = (1 - curveFun(x / this.width)) * this.height
-        curvePoints.push({x, y})
-      }
-
-      console.log(this.curveN)
-
-      if (curvePoints.length === 0) return null          
-      let d = `M ${curvePoints[0].x} ${curvePoints[0].y}`
-      for (let i = 1; i < curvePoints.length; i++) {
-        d += ` L ${curvePoints[i].x} ${curvePoints[i].y}`
-      }
-      return d
-    },
-  },
-  methods: {
-    distance (x1, y1, x2, y2) {
-      return Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2))
-    },
-    convertX (ori_x) {
-      return ori_x / this.$refs.svg.clientWidth * this.width
-    },
-    convertY (ori_y) {
-      return ori_y / this.$refs.svg.clientHeight * this.height
-    },
-    handleMouseUp (event) {
-      if (this.movingPoints && this.movingPoints.length === 0) {
-        let point = {
-          cx: this.convertX(event.offsetX),
-          cy: this.convertY(event.offsetY),
-          label: this.label,
-          moving: false,
-        }
-        let points = this.points
-        points.push(point)
-      }
-      this.points.forEach((point) => point.moving = false)
-    },
-    handleMouseDown (event) {
-      let _this = this
-      let neighbours = this.points.filter((point) => {
-        let x1 = point.cx
-        let y1 = point.cy
-        let x2 = _this.convertX(event.offsetX)
-        let y2 = _this.convertY(event.offsetY)
-        return this.distance(x1, y1, x2, y2) < this.r
-      })
-      if (neighbours.length > 0) {
-        neighbours[0].moving = true
-      }
-    },
-    handleMouseMove (event) {
-      let _this = this
-      if (event.buttons === 1) {
-        if (this.movingPoints.length > 0) {
-          this.movingPoints.forEach((point) => {
-            point.cx = _this.convertX(event.offsetX)
-            point.cy = _this.convertY(event.offsetY)
-          })
-          _this.$emit('updateTree')
-        }
-      }
-    },
-  },
-}
-</script>
-
-<style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-}
-</style>

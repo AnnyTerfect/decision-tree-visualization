@@ -1,7 +1,7 @@
 
 // Description: Classification and Regression Tree (CART) implementation
 
-class DecisionTree {
+export class DecisionTree {
 	// Constructor
 	constructor() {
 		this.root = null;
@@ -329,7 +329,7 @@ class Node {
 	}
 }
 
-function traverse(tree, x1, y1, x2, y2, lines, rects) {
+export function traverse(tree, x1, y1, x2, y2, lines, rects) {
 	if (tree === null || tree.leaf) {
 		rects.push({ x: x1, y: y1, width: x2 - x1, height: y2 - y1, label: tree.prediction })
 		return
@@ -349,7 +349,3 @@ function traverse(tree, x1, y1, x2, y2, lines, rects) {
 		return
 	}
 }
-
-// Exporting the class
-module.exports.DecisionTree = DecisionTree
-module.exports.traverse = traverse
