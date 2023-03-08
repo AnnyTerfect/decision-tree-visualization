@@ -78,7 +78,7 @@ const curve = computed(() => {
 
 watch(() => props.tree, () => {
   let _lines = [], _rects = []
-  traverse(props.tree.tree, 0, 0, props.width, props.height, _lines, _rects)
+  traverse(props.tree.tree, 0, 0, svg.value.clientWidth, svg.value.clientHeight, _lines, _rects)
   lines.value = _lines
   rects.value = _rects
 })
@@ -139,13 +139,14 @@ function handleMouseMove (event) {
         @mousemove="handleMouseMove"
         @mousedown="handleMouseDown"
         ref="svg"
+        :viewBox="svg ? `0 0 ${svg.clientWidth} ${svg.clientHeight}` : null"
       >
         <rect
           v-for="rect in rects"
-          :x="rect.x * width"
-          :y="rect.y * height"
-          :width="rect.width * width"
-          :height="rect.height * height"
+          :x="rect.x * svg.clientWidth"
+          :y="rect.y * svg.clientHeight"
+          :width="rect.width * svg.clientWidth"
+          :height="rect.height * svg.clientHeight"
           class="opacity-40"
           :class="rect.label === 1 ? 'fill-red-200' : 'fill-blue-200'"
           :key="String([rect.x, rect.y])"
@@ -154,16 +155,16 @@ function handleMouseMove (event) {
           v-for="point in points"
           class="hover:stroke-black hover:stroke-3"
           :class="point.label === 1 ? 'fill-red-300': 'fill-blue-300'"
-          :cx="point.cx * width"
-          :cy="point.cy * height"
+          :cx="point.cx * svg.clientWidth"
+          :cy="point.cy * svg.clientHeight"
           :r="r"
           :key="String([point.cx, point.cy])"
         />
         <line
           v-for="line in lines"
           class="stroke-black stroke-1 hover:stroke-3"
-          :x1="line.x1 * width" :y1="line.y1 * height" :x2="line.x2 * width" :y2="line.y2 * height"
-          :key="String([line.x1 * width, line.y1 * height, line.x2 * width, line.y2 * height])"
+          :x1="line.x1 * svg.clientWidth" :y1="line.y1 * svg.clientHeight" :x2="line.x2 * svg.clientWidth" :y2="line.y2 * svg.clientHeight"
+          :key="String([line.x1, line.y1, line.x2, line.y2])"
         />
         <path
           :d="curve"

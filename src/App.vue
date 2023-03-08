@@ -6,8 +6,6 @@ import MyNavDrawer from './components/MyNavDrawer.vue';
 
 const drawer = ref(true)
 const newLabel = ref(1)
-const width = ref(800)
-const height = ref(500)
 const points = ref([])
 const tree = ref({})
 
@@ -29,13 +27,13 @@ function generate(args) {
       label = Math.random() > 0.5 ? 1 : 0
     }
     else if (labelRandom === 'linear') {
-      label = (1 - x) > Math.pow(y, 1) ? 1 : 0
+      label = y > Math.pow(x, 1) ? 1 : 0
     }
     else if (labelRandom === 'quadratic') {
-      label = (1 - x) > Math.pow(y, 2) ? 1 : 0
+      label = y - 1 / 4 > Math.pow(x, 2) ? 1 : 0
     }
     else if (labelRandom === 'cubic') {
-      label = (1 - x) > Math.pow(y, 3) ? 1 : 0
+      label = y > Math.pow(x, 3) ? 1 : 0
     }
 
     // add noise
@@ -101,8 +99,6 @@ function movePoint(args) {
     <v-main class="fixed left-0 right-0 top-0 bottom-0">
       <my-canvas
         :points="points"
-        :width="width"
-        :height="height"
         :r="10"
         :newLabel="newLabel"
         :tree="tree"
