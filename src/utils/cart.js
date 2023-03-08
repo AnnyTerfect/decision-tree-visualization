@@ -329,23 +329,23 @@ class Node {
 	}
 }
 
-export function traverse(tree, x1, y1, x2, y2, lines, rects) {
+export function traverse(tree, x1, y1, x2, y2, lines, rects, depth=1) {
 	if (tree === null || tree.leaf) {
 		rects.push({ x: x1, y: y1, width: x2 - x1, height: y2 - y1, label: tree.prediction })
 		return
 	}
 	if (tree.split === 0) {
-		let line = { x1: tree.splitValue, x2: tree.splitValue, y1: y1, y2: y2 }
+		let line = { x1: tree.splitValue, x2: tree.splitValue, y1: y1, y2: y2, depth }
 		lines.push(line)
-		traverse(tree.left, x1, y1, tree.splitValue, y2, lines, rects)
-		traverse(tree.right, tree.splitValue, y1, x2, y2, lines, rects)
+		traverse(tree.left, x1, y1, tree.splitValue, y2, lines, rects, depth + 1)
+		traverse(tree.right, tree.splitValue, y1, x2, y2, lines, rects, depth + 1)
 		return
 	}
 	if (tree.split === 1) {
-		let line = { x1: x1, x2: x2, y1: tree.splitValue, y2: tree.splitValue }
+		let line = { x1: x1, x2: x2, y1: tree.splitValue, y2: tree.splitValue, depth }
 		lines.push(line)
-		traverse(tree.left, x1, y1, x2, tree.splitValue, lines, rects)
-		traverse(tree.right, x1, tree.splitValue, x2, y2, lines, rects)
+		traverse(tree.left, x1, y1, x2, tree.splitValue, lines, rects, depth + 1)
+		traverse(tree.right, x1, tree.splitValue, x2, y2, lines, rects, depth + 1)
 		return
 	}
 }
