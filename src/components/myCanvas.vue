@@ -8,14 +8,6 @@ const svg = ref(null)
 const lines = ref([]), rects = ref([])
 
 const props = defineProps({
-  width: {
-    type: Number,
-    required: true,
-  },
-  height: {
-    type: Number,
-    required: true,
-  },
   points: {
     type: Array,
     required: true,
@@ -78,7 +70,7 @@ const curve = computed(() => {
 
 watch(() => props.tree, () => {
   let _lines = [], _rects = []
-  traverse(props.tree.tree, 0, 0, svg.value.clientWidth, svg.value.clientHeight, _lines, _rects)
+  traverse(props.tree.tree, 0, 0, svg.value.clientWidth, svg.value.clientHeight, _lines, _rects, 1)
   lines.value = _lines
   rects.value = _rects
 })
@@ -162,8 +154,10 @@ function handleMouseMove (event) {
         />
         <line
           v-for="line in lines"
-          class="stroke-black stroke-1 hover:stroke-3"
+          class="stroke-black opacity-60"
+          :class="[`hover:stroke-${tree.getDepth() - line.depth + 2}`]"
           :x1="line.x1 * svg.clientWidth" :y1="line.y1 * svg.clientHeight" :x2="line.x2 * svg.clientWidth" :y2="line.y2 * svg.clientHeight"
+          :stroke-width="tree.getDepth() - line.depth + 1"
           :key="String([line.x1, line.y1, line.x2, line.y2])"
         />
         <path
@@ -171,6 +165,15 @@ function handleMouseMove (event) {
           class="stroke-black stroke-3 hover:stroke-5 opacity-50"
           fill="none"
         />
+        <text
+          v-for="line in lines"
+          :x="line.x1 * svg.clientWidth + 5"
+          :y="line.y1 * svg.clientHeight + 5"
+          :key="String([line.x, line.y])"
+          style="dominant-baseline: hanging"
+        >
+          {{ line.depth }}
+        </text>
       </svg>
     </v-card>
   </v-container>
