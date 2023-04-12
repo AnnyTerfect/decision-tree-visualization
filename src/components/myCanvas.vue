@@ -1,10 +1,12 @@
 <script setup>
-import { ref, defineProps, computed, watch, defineEmits } from 'vue'
+import { ref, defineProps, computed, watch, defineEmits, onMounted, nextTick } from 'vue'
 import { traverse } from '../utils/cart.js'
 
 const emit = defineEmits()
 
-const svg = ref(null)
+const container = ref(null)
+const width = ref(0)
+const height = ref(0)
 const lines = ref([]), rects = ref([])
 
 const props = defineProps({
@@ -68,22 +70,61 @@ const curve = computed(() => {
   return d
 })
 
-watch(() => props.tree, () => {
+watch(() => [props.tree, width.value, height.value], () => {
   let _lines = [], _rects = []
-  traverse(props.tree.tree, 0, 0, svg.value.clientWidth, svg.value.clientHeight, _lines, _rects, 1)
+  traverse(props.tree.tree, 0, 0, width.value, height.value, _lines, _rects, 1)
   lines.value = _lines
   rects.value = _rects
+
+  // BFS
+  let queue = [{...props.tree.tree, depth: 0}]
+  let depth = 0
+  let impurityPerDepth = []
+  let impurity = 0
+  while (queue.length > 0) {
+    let node = queue.shift()
+
+    // Next level
+    if (node.depth !== depth) {
+      depth = node.depth
+      impurityPerDepth.push(impurity)
+      impurity = 0
+    }
+
+    impurity += node.X.length / props.tree.tree.X.length * node.impurity
+
+    if (node.left) {
+      queue.push({...node.left, depth: depth + 1})
+    }
+    if (node.right) {
+      queue.push({...node.right, depth: depth + 1})
+    }
+  }
+
+  console.log(impurityPerDepth)
+
+  // Ratio for impurity gain
+  for (let i = 0; i < impurityPerDepth.length - 1; i++) {
+    console.log((impurityPerDepth[i] - impurityPerDepth[i + 1]) / impurityPerDepth[i])
+  }
 })
 
+function resize() {
+  console.log(width.value)
+  console.log(height.value)
+  width.value = container.value.clientWidth
+  height.value = container.value.clientHeight
+}
+
 function distance (x1, y1, x2, y2) {
-  return Math.sqrt(Math.pow((x1 - x2) * svg.value.clientWidth, 2) + Math.pow((y1 - y2) * svg.value.clientHeight, 2))
+  return Math.sqrt(Math.pow((x1 - x2) * width.value, 2) + Math.pow((y1 - y2) * height.value, 2))
 }
 
 function handleMouseUp (event) {
   if (movingPoints.value.length === 0) {
     let point = {
-      cx: event.offsetX / svg.value.clientWidth,
-      cy: event.offsetY / svg.value.clientHeight,
+      cx: event.offsetX / width.value,
+      cy: event.offsetY / height.value,
       label: props.newLabel,
       moving: false,
     }
@@ -96,8 +137,8 @@ function handleMouseDown (event) {
   let neighbours = props.points.filter((point) => {
     let x1 = point.cx
     let y1 = point.cy
-    let x2 = event.offsetX / svg.value.clientWidth
-    let y2 = event.offsetY / svg.value.clientHeight
+    let x2 = event.offsetX / width.value
+    let y2 = event.offsetY / height.value
     return distance(x1, y1, x2, y2) <= props.r
   })
   if (neighbours.length > 0) {
@@ -112,69 +153,81 @@ function handleMouseMove (event) {
         if (point.moving) {
           emit('movePoint', {
             index,
-            x: event.offsetX / svg.value.clientWidth,
-            y: event.offsetY / svg.value.clientHeight,
+            x: event.offsetX / width.value,
+            y: event.offsetY / height.value,
           })
         }
       })
     }
   }
 }
+
+onMounted(() => {
+  nextTick(() => {
+    resize()
+    
+    const observer = new ResizeObserver(() => {
+      resize()
+    })
+    observer.observe(container.value)
+  })
+})
 </script>
 
 <template>
-  <v-container class="h-1/1">
-    <v-card class="h-1/1">
-      <svg
-        class="w-1/1 h-1/1"
-        @mouseup="handleMouseUp"
-        @mousemove="handleMouseMove"
-        @mousedown="handleMouseDown"
-        ref="svg"
-        :viewBox="svg ? `0 0 ${svg.clientWidth} ${svg.clientHeight}` : null"
-      >
-        <rect
-          v-for="rect in rects"
-          :x="rect.x * svg.clientWidth"
-          :y="rect.y * svg.clientHeight"
-          :width="rect.width * svg.clientWidth"
-          :height="rect.height * svg.clientHeight"
-          class="opacity-40"
-          :class="rect.label === 1 ? 'fill-red-200' : 'fill-blue-200'"
-          :key="String([rect.x, rect.y])"
-        />
-        <circle
-          v-for="point in points"
-          class="hover:stroke-black hover:stroke-3"
-          :class="point.label === 1 ? 'fill-red-300': 'fill-blue-300'"
-          :cx="point.cx * svg.clientWidth"
-          :cy="point.cy * svg.clientHeight"
-          :r="r"
-          :key="String([point.cx, point.cy])"
-        />
-        <line
-          v-for="line in lines"
-          class="stroke-black opacity-60"
-          :class="[`hover:stroke-${tree.getDepth() - line.depth + 2}`]"
-          :x1="line.x1 * svg.clientWidth" :y1="line.y1 * svg.clientHeight" :x2="line.x2 * svg.clientWidth" :y2="line.y2 * svg.clientHeight"
-          :stroke-width="tree.getDepth() - line.depth + 1"
-          :key="String([line.x1, line.y1, line.x2, line.y2])"
-        />
-        <path
-          :d="curve"
-          class="stroke-black stroke-3 hover:stroke-5 opacity-50"
-          fill="none"
-        />
-        <text
-          v-for="line in lines"
-          :x="line.x1 * svg.clientWidth + 5"
-          :y="line.y1 * svg.clientHeight + 5"
-          :key="String([line.x, line.y])"
-          style="dominant-baseline: hanging"
+  <div class="p-3 h-1/1">
+    <v-card class="w-1/1 h-1/1">
+      <div ref="container" class="w-1/1 h-1/1">
+        <svg
+          class="w-full h-1/1"
+          @mouseup="handleMouseUp"
+          @mousemove="handleMouseMove"
+          @mousedown="handleMouseDown"
+          :viewBox="container ? `0 0 ${width} ${height}` : null"
         >
-          {{ line.depth }}
-        </text>
-      </svg>
+          <rect
+            v-for="rect in rects"
+            :x="rect.x * width"
+            :y="rect.y * height"
+            :width="rect.width * width"
+            :height="rect.height * height"
+            class="opacity-40"
+            :class="rect.label === 1 ? 'fill-red-200' : 'fill-blue-200'"
+            :key="String([rect.x, rect.y])"
+          />
+          <circle
+            v-for="point in points"
+            class="hover:stroke-black hover:stroke-3"
+            :class="point.label === 1 ? 'fill-red-300': 'fill-blue-300'"
+            :cx="point.cx * width"
+            :cy="point.cy * height"
+            :r="r"
+            :key="String([point.cx, point.cy])"
+          />
+          <line
+            v-for="line in lines"
+            class="stroke-black opacity-60"
+            :class="[`hover:stroke-${tree.getDepth() - line.depth + 2}`]"
+            :x1="line.x1 * width" :y1="line.y1 * height" :x2="line.x2 * width" :y2="line.y2 * height"
+            :stroke-width="tree.getDepth() - line.depth + 1"
+            :key="String([line.x1, line.y1, line.x2, line.y2])"
+          />
+          <path
+            :d="curve"
+            class="stroke-black stroke-3 hover:stroke-5 opacity-50"
+            fill="none"
+          />
+          <text
+            v-for="line in lines"
+            :x="line.x1 * width + 5"
+            :y="line.y1 * height + 5"
+            :key="String([line.x, line.y])"
+            style="dominant-baseline: hanging"
+          >
+            {{ line.depth }}
+          </text>
+        </svg>
+      </div>
     </v-card>
-  </v-container>
+  </div>
 </template>

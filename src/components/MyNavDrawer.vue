@@ -14,7 +14,7 @@ const props = defineProps({
 
 const num = ref(500)
 const featureRandom = ref('uniform')
-const labelRandom = ref('quadratic')
+const labelRandom = ref('linear')
 const noise = ref(0)
 
 const emit = defineEmits()
@@ -39,7 +39,7 @@ onMounted(emitGenerate)
         width="400"
         v-model="props.drawer"
     >
-        <v-card class="pa-0 h-full">
+        <v-card class="pa-0 pt-5 min-h-1/1">
             <v-card-title class="text-h5">
                 Manual
             </v-card-title>

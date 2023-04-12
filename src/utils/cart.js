@@ -72,6 +72,16 @@ class Node {
 		this.splitValue = null;
 		this.leaf = false;
 		this.prediction = null;
+		// Calculating the impurity
+		let uniqueValues = [...new Set(this.y)];
+		let numUniqueValues = uniqueValues.length;
+		let numDataPoints = this.y.length;
+		let impurity = 0;
+		for (let i = 0; i < numUniqueValues; i++) {
+			let numDataPointsWithClass = this.y.filter((x) => x === uniqueValues[i]).length;
+			impurity += 4 * numDataPointsWithClass / numDataPoints * (1 - numDataPointsWithClass / numDataPoints);
+		}
+		this.impurity = impurity;
 	}
 
 	// Function to create the tree
