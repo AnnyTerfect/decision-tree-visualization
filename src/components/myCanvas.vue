@@ -207,9 +207,9 @@ onMounted(() => {
           <line
             v-for="line in lines"
             class="stroke-black opacity-60"
-            :class="[`hover:stroke-${tree.getDepth() - line.depth + 2}`]"
+            :class="[`hover:stroke-5`]"
             :x1="line.x1 * width" :y1="line.y1 * height" :x2="line.x2 * width" :y2="line.y2 * height"
-            :stroke-width="tree.getDepth() - line.depth + 1"
+            :stroke-width="2"
             :key="String([line.x1, line.y1, line.x2, line.y2])"
           />
           <path

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, defineProps, defineEmits, onMounted } from 'vue'
+import { ref, defineProps, defineEmits, onMounted, watch } from 'vue'
 
 const props = defineProps({
     drawer: {
@@ -10,11 +10,18 @@ const props = defineProps({
         type: Number,
         required: true,
     },
+    numLeaves: {
+        type: Number,
+    },
+    depth: {
+        type: Number,
+    }
 })
 
 const num = ref(500)
 const featureRandom = ref('uniform')
 const labelRandom = ref('linear')
+const margin = ref(0.1)
 const noise = ref(0)
 
 const emit = defineEmits()
@@ -23,11 +30,18 @@ function emitGenerate() {
         num: num.value,
         featureRandom: featureRandom.value,
         labelRandom: labelRandom.value,
+        margin: margin.value,
         noise: noise.value,
     })
 }
 
 onMounted(emitGenerate)
+
+watch(
+    () => [num.value, featureRandom.value, labelRandom.value, margin.value, noise.value],
+    emitGenerate,
+    { deep: true }
+)
 </script>
 
 <template>
@@ -147,6 +161,23 @@ onMounted(emitGenerate)
                 </v-row>
 
                 <v-row class="mt-8 text-lg text-black">
+                    <v-col cols="4">Margin</v-col>
+                    <v-col cols="8">
+                    <v-slider
+                        v-model="margin"
+                        :max="1"
+                        :min="0"
+                        :step="0.01"
+                        thumb-label="always"
+                        thumb-color="primary"
+                        track-color="primary"
+                        tick-color="primary"
+                        @change="$emit('update:noise', noismargin)"
+                    />
+                    </v-col>
+                </v-row>
+
+                <v-row class="mt-8 text-lg text-black">
                     <v-col cols="4">Noise</v-col>
                     <v-col cols="8">
                     <v-slider
@@ -188,13 +219,13 @@ onMounted(emitGenerate)
                 <v-row class="text-lg text-black">
                     <v-col cols="5">Num Leaves</v-col>
                     <v-col cols="7">
-                    {{ null === null ? 0 : 0 }}
+                    {{ numLeaves }}
                     </v-col>
                 </v-row>
                 <v-row class="text-lg text-black">
                     <v-col cols="5">Depth</v-col>
                     <v-col cols="7">
-                    {{ null === null ? 0 : 0 }}
+                    {{ depth }}
                     </v-col>
                 </v-row>
                 </v-container>

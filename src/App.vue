@@ -8,33 +8,49 @@ const drawer = ref(false)
 const newLabel = ref(1)
 const points = ref([])
 const tree = ref({})
+const numLeaves = ref(0)
+const depth = ref(0)
 
 watch(() => points.value, () => {
   tree.value = learnTree()
 }, { deep: true })
 
+watch(
+  () => tree.value,
+  () => {
+    numLeaves.value = tree.value.getNumLeaves()
+    depth.value = tree.value.getDepth()
+  }
+)
+
 function generate(args) {
-  let { num, featureRandom, labelRandom, noise } = args
+  let { num, featureRandom, labelRandom, margin, noise } = args
   points.value = []
   for (let i = 0; i < num; i++) {
-    let x, y, label
-    if (featureRandom === 'uniform') {
-      x = Math.random()
-      y = Math.random()
-    }
+    let x, y, label, fun
 
     if (labelRandom === 'uniform') {
-      label = Math.random() > 0.5 ? 1 : 0
+      fun = () => Math.random() > 0.5 ? 1 : 0
     }
     else if (labelRandom === 'linear') {
-      label = (y > Math.pow(x, 1) - 1 / 2) ? 1 : 0
+      fun = (x) => x
     }
     else if (labelRandom === 'quadratic') {
-      label = y - 1 / 4 > Math.pow(x, 2) ? 1 : 0
+      fun = (x) => Math.pow(x, 2) + 1 / 4
     }
     else if (labelRandom === 'cubic') {
-      label = y > Math.pow(x, 3) ? 1 : 0
+      fun = (x) => Math.pow(x, 3)
     }
+
+    if (featureRandom === 'uniform') {
+      while (true) {
+        x = Math.random()
+        y = Math.random()
+        if (Math.abs(y - fun(x)) >= margin) break
+      }
+    }
+
+    label = y > fun(x) ? 1 : 0
 
     // add noise
     label =  Math.random() < noise ? 1 - label : label
@@ -94,6 +110,8 @@ function movePoint(args) {
       v-model:newLabel="newLabel"
       @generate="generate"
       @clean="points = []"
+      :num-leaves="numLeaves"
+      :depth="depth"
     />
 
     <v-main class="fixed left-0 right-0 top-0 bottom-0">
