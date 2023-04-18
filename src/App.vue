@@ -4,7 +4,7 @@ import { DecisionTree } from './utils/cart'
 import MyCanvas from './components/MyCanvas.vue';
 import MyNavDrawer from './components/MyNavDrawer.vue';
 
-const drawer = ref(false)
+const drawer = ref(true)
 const newLabel = ref(1)
 const points = ref([])
 const tree = ref({})
@@ -33,7 +33,7 @@ function generate(args) {
       fun = () => Math.random() > 0.5 ? 1 : 0
     }
     else if (labelRandom === 'linear') {
-      fun = (x) => x
+      fun = (x) => x + 0.2
     }
     else if (labelRandom === 'quadratic') {
       fun = (x) => Math.pow(x, 2) + 1 / 4
